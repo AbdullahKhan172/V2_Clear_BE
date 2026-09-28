@@ -1,0 +1,67 @@
+# Everything the backend needs to run, pinned to the versions this codebase is
+# verified against. This file sits at the repo root so Railway (Railpack)
+# detects the app as Python. Install, then start the API from this folder:
+#
+#     pip install -r requirements.txt
+#     PYTHONIOENCODING=utf-8 python -m uvicorn app.main:app --port 8000
+#
+# This is NOT the legacy repository's requirements.txt. That one also carries
+# flask (the legacy app) and customtkinter (the desktop app), neither of which
+# this service imports. The only overlap is the calculation engine's own
+# dependencies, listed under "engine" below.
+
+# ── API layer ────────────────────────────────────────────────────────────
+fastapi==0.121.2
+uvicorn==0.41.0
+pydantic==2.12.4
+SQLAlchemy==2.0.36
+
+# ── Database ─────────────────────────────────────────────────────────────
+# SQLite needs nothing extra; these are for Postgres, which is what runs in
+# deployment. psycopg 3 specifically: SQLalchemy reads a bare `postgresql://`
+# URL as psycopg2, so app/db.py rewrites it to `postgresql+psycopg://`.
+psycopg[binary]==3.2.3
+# Owns the schema. The app never migrates itself at startup - deployments run
+# `alembic upgrade head` first, so a failed migration fails the deploy instead
+# of taking the web process down, and two instances cannot race each other.
+alembic==1.14.0
+
+# ── File storage ─────────────────────────────────────────────────────────
+# Only needed when STORAGE_BACKEND=s3. The same client talks to Cloudflare R2,
+# AWS S3 and MinIO - R2 is S3-compatible, so there is no Cloudflare SDK here.
+boto3==1.35.76
+
+# ── Task queue ───────────────────────────────────────────────────────────
+# Only used when REDIS_URL is set; without it the three jobs run in background
+# threads and nothing here is imported at runtime. Redis is both the broker and
+# the short-lived store for a per-run credential (see app/secrets.py) - there is
+# no result backend, because run.status in the database is the source of truth.
+celery==5.4.0
+redis==5.2.1
+# Multipart form parsing - FastAPI needs it for the file upload endpoint and
+# raises at import time without it.
+python-multipart==0.0.20
+# Reads webapp/backend/.env in development. Optional - without it the app runs
+# on real environment variables, which is all a deployment ever uses.
+python-dotenv==1.0.1
+
+# ── Engine (vendored under backend/vendor, but these are its imports) ────
+pandas==2.3.3
+numpy==2.4.2
+# Parquet round-trips the calculation DataFrame with exact dtypes. JSON would
+# coerce NaN to null and ints to floats, silently changing carbon numbers.
+pyarrow==18.1.0
+# IFC parsing. Only needed if .ifc uploads are supported; spreadsheet-only
+# deployments can drop it, at the cost of the IFC path failing at import.
+ifcopenshell==0.8.4.post1
+
+# ── Report generation ────────────────────────────────────────────────────
+openpyxl==3.1.5          # Excel workbook + quantities export
+python-docx==1.2.0       # Word report
+matplotlib==3.10.8       # charts embedded in the Word report
+
+# ── Not required to RUN, only to test ────────────────────────────────────
+# Three harnesses (test_calculation_parity, test_extraction_parity,
+# test_results_parity) drive the legacy Flask app to diff it against this one.
+# They need flask AND the original tree present; the other ten do not.
+# flask==3.1.3
