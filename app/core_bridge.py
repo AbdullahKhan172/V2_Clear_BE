@@ -41,8 +41,12 @@ import sys
 from pathlib import Path
 
 BACKEND_ROOT = Path(__file__).resolve().parents[1]
-# webapp/backend/app/core_bridge.py -> parents[3] is the project root.
-PROJECT_ROOT = Path(__file__).resolve().parents[3]
+# webapp/backend/app/core_bridge.py -> parents[3] is the project root. Deployed
+# on its own the backend sits near the filesystem root (/app/app/...), where
+# there is no parents[3] - and no original tree either, so it falls back to the
+# backend itself; vendor/ is what gets used there anyway.
+_parents = Path(__file__).resolve().parents
+PROJECT_ROOT = _parents[3] if len(_parents) > 3 else BACKEND_ROOT
 
 VENDOR_ROOT = BACKEND_ROOT / 'vendor'
 
