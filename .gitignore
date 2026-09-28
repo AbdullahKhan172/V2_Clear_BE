@@ -1,0 +1,15 @@
+# Secrets - real credentials live here. .env.example is the committed template.
+.env
+.env.*
+!.env.example
+
+# Local runtime data: SQLite database, uploads, blobs, generated reports.
+# Recreated on first run.
+var/
+
+# Python
+__pycache__/
+*.py[cod]
+.venv/
+venv/
+.pytest_cache/
